@@ -22,7 +22,7 @@ class OutputRedirector(object):
             self.text_space.delete("end-1l", "end")
             self.text_space.insert(tk.END, '\n')
             
-            self.text_space.insert(tk.END, message.lstrip())
+            self.text_space.insert(tk.END, message)
         else:
             self.text_space.insert(tk.END, message)
 
@@ -73,6 +73,7 @@ class NiftiBrowseButton(ttk.Button):
         if file:
             self.target_widget.delete(0, tk.END)
             self.target_widget.insert(0, file)
+
 
 def run_my_program():
     input_directory0 = input_entry.get()
@@ -168,10 +169,14 @@ def run_my_program():
         
         segment_img = sitk.ReadImage(segment_path)
         segment_array = sitk.GetArrayFromImage(segment_img)
+        
+        # print(segment_array.shape)
+        # print(segment_array[0].shape)
+        
         spacing = segment_img.GetSpacing()
         voxel_volume = spacing[0] * spacing[1] * spacing[2]
-        print(f'spacing = {spacing}')
-        print(f'voxel volume = {voxel_volume} mm\u00B3')
+        # print(f'spacing = {spacing}')
+        # print(f'voxel volume = {voxel_volume} mm\u00B3')
         
         print('-------------------------------------------------')
         print('')
@@ -186,9 +191,12 @@ def run_my_program():
             array[segment_array == segmentations_dict[muscle]] = 1
             muscle_volume = round(int(np.sum(array.flatten()) * voxel_volume)/1000, 1)
 
-        
-            print(f'{muscle_name_dict[muscle]} = {muscle_volume} cm\u00B3')
-            
+            if np.count_nonzero(array[0]) or np.count_nonzero(array[-1]):
+                print(f'{muscle_name_dict[muscle]} = {muscle_volume} cm\u00B3     |     Warning! Muscle is clipped!')
+
+            else:
+                print(f'{muscle_name_dict[muscle]} = {muscle_volume} cm\u00B3')
+
     else:
         print('please choose input and output directories or specify segmentation path!')
         
@@ -217,14 +225,14 @@ if __name__ == '__main__':
     input_entry = EntryBox(big_frame, width=80, input_text='DICOM directory')
     input_entry.grid(row=0, column=0, padx=5, pady=5)
 
-    input_browse_button = DirectoryBrowseButton(big_frame, input_entry, text="Browse")
+    input_browse_button = DirectoryBrowseButton(big_frame, input_entry, text="Browse", width=11)
     input_browse_button.grid(row=0, column=1, padx=5, pady=5)
 
     # Output Directory Section
     output_entry = EntryBox(big_frame, width=80, input_text='Output directory')
     output_entry.grid(row=1, column=0, padx=5, pady=5)
 
-    output_browse_button = DirectoryBrowseButton(big_frame, output_entry, text="Browse")
+    output_browse_button = DirectoryBrowseButton(big_frame, output_entry, text="Browse", width=11)
     output_browse_button.grid(row=1, column=1, padx=5, pady=5)
     
     # OR label
@@ -235,12 +243,15 @@ if __name__ == '__main__':
     segmentation_entry = EntryBox(big_frame, width=80, input_text='Segmentation file path')
     segmentation_entry.grid(row=3, column=0, padx=5, pady=5)
 
-    segmentation_browse_button = NiftiBrowseButton(big_frame,segmentation_entry, text="Browse")
+    segmentation_browse_button = NiftiBrowseButton(big_frame,segmentation_entry, text="Browse", width=11)
     segmentation_browse_button.grid(row=3, column=1, padx=5, pady=5)
     
     # Output Window
-    output_window = ScrolledText.ScrolledText(big_frame, height=15, width=80)
+    font_tuple = ("Fira Code", 9) 
+    
+    output_window = ScrolledText.ScrolledText(big_frame, height=18, width=80)
     output_window.grid(row=4, rowspan=5, column=0, padx=5, pady=5)
+    output_window.configure(font=font_tuple)
 
     # Redirect stdout to text widget
     sys.stdout = OutputRedirector(output_window)
@@ -249,13 +260,13 @@ if __name__ == '__main__':
     # Dropdown Menu
     options = ["1.5 mm", "3 mm"]  # Add your options here
     dropdown_var = tk.StringVar()
-    dropdown = ttk.Combobox(big_frame, textvariable=dropdown_var, values=options, width=15)
+    dropdown = ttk.Combobox(big_frame, textvariable=dropdown_var, state="readonly", values=options, width=12)
     dropdown.grid(row=4, column=1)
     dropdown.current(1)  # Set the default selection
     
     options2 = ["CPU", "GPU"]  # Add your options here
     dropdown_var2 = tk.StringVar()
-    dropdown2 = ttk.Combobox(big_frame, textvariable=dropdown_var2, values=options2, width=15)
+    dropdown2 = ttk.Combobox(big_frame, textvariable=dropdown_var2, state="readonly", values=options2, width=12)
     dropdown2.grid(row=5, column=1)
     dropdown2.current(0)  # Set the default selection
     
@@ -302,7 +313,7 @@ if __name__ == '__main__':
 
     # Run Button
     run_button = ttk.Button(big_frame, text="Run", command=run_my_program, style='Accent.TButton')
-    run_button.grid(row=7, column=1, padx=5, pady=5)
+    run_button.grid(row=8, column=1, padx=5, pady=5)
 
     # Start the Tkinter event loop
     root.mainloop()
